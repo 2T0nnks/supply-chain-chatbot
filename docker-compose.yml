@@ -1,0 +1,50 @@
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: supply-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  ollama-setup:
+    image: ollama/ollama:latest
+    container_name: supply-ollama-setup
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "ollama pull qwen2.5:0.5b && echo 'Modelo baixado com sucesso'"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
+  chatbot:
+    build: .
+    container_name: supply-chatbot
+    ports:
+      - "8000:8000"
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  ollama_data:

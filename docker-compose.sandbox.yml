@@ -1,0 +1,41 @@
+# docker-compose alternativo para ambientes com restrição de iptables/networking
+# (ex: sandboxes, alguns VPS sem módulo iptables raw)
+# Usa network_mode: host — todos os serviços compartilham a rede do host
+# Em produção normal, use o docker-compose.yml padrão
+
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: supply-ollama
+    network_mode: host
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  ollama-setup:
+    image: ollama/ollama:latest
+    container_name: supply-ollama-setup
+    network_mode: host
+    environment:
+      - OLLAMA_HOST=http://localhost:11434
+    entrypoint: >
+      sh -c "sleep 10 && ollama pull qwen2.5:0.5b && echo 'Modelo baixado com sucesso'"
+    depends_on:
+      - ollama
+    restart: "no"
+
+  chatbot:
+    build: .
+    container_name: supply-chatbot
+    network_mode: host
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - OLLAMA_HOST=http://localhost:11434
+      - PORT=8000
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

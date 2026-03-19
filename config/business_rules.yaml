@@ -1,0 +1,250 @@
+# ============================================================
+# REGRAS DE NEGÓCIO - Supply Chain Chatbot
+# ============================================================
+# Este arquivo controla todo o comportamento de negociação,
+# alertas de estoque e decisões da IA.
+# Edite livremente sem precisar alterar o código.
+# ============================================================
+
+# ------------------------------------------------------------
+# COMPORTAMENTO GERAL DA IA
+# ------------------------------------------------------------
+ai:
+  # Modelo a usar — Ollama local (open source, sem custo de tokens)
+  # Opções leves: qwen2.5:0.5b | tinyllama | phi3:mini | gemma:2b
+  model: "qwen2.5:0.5b"
+
+  # Tom do agente: "agressivo" | "neutro" | "conservador"
+  # agressivo   = fecha negócio mais rápido, aceita mais descontos
+  # neutro      = equilibrado entre margem e fechamento
+  # conservador = protege margem, cede menos desconto
+  negotiation_style: "neutro"
+
+  # Idioma das respostas
+  language: "pt-BR"
+
+  # Máximo de tokens por resposta (controla velocidade/custo)
+  max_tokens: 400
+
+  # Temperatura: 0.0 = determinístico | 1.0 = criativo
+  temperature: 0.4
+
+  # Persona do agente
+  persona: |
+    Você é um especialista em vendas B2B de supply chain chamado "Max".
+    Você conhece profundamente os produtos, preços e regras da empresa.
+    Seja objetivo, profissional e focado em fechar negócios com margem saudável.
+    Sempre use os dados reais de estoque e preços fornecidos no contexto.
+    Nunca invente informações que não estejam no contexto.
+
+# ------------------------------------------------------------
+# REGRAS DE ESTOQUE
+# ------------------------------------------------------------
+stock:
+  # Limites para classificação de estoque (% do estoque máximo)
+  thresholds:
+    critical: 10    # <= 10% → CRÍTICO (urgência máxima)
+    low: 25         # <= 25% → BAIXO (alerta)
+    medium: 50      # <= 50% → MÉDIO (atenção)
+    # acima de 50% → NORMAL
+
+  # Estoque máximo de referência por categoria (para calcular %)
+  # Se não definido, usa o estoque atual como 100%
+  max_stock_reference:
+    "Fixação": 10000
+    "Correntes": 500
+    "Rolamentos": 300
+    "Correias": 100
+    "Lubrificantes": 2000
+    "Polias": 200
+    "Mancais": 80
+
+  # Comportamento quando estoque está crítico
+  critical_stock_behavior:
+    # Impede venda acima deste % do estoque disponível
+    max_sell_percent: 80
+    # Aplica markup automático (aumenta preço)
+    price_markup_percent: 15
+    # Alerta o cliente sobre escassez
+    show_scarcity_alert: true
+    # Mensagem de escassez
+    scarcity_message: "⚠️ Atenção: estoque limitado! Garanta seu pedido agora."
+
+  # Comportamento quando estoque está baixo
+  low_stock_behavior:
+    max_sell_percent: 90
+    price_markup_percent: 5
+    show_scarcity_alert: true
+    scarcity_message: "ℹ️ Estoque reduzido. Recomendamos confirmar o pedido em breve."
+
+# ------------------------------------------------------------
+# REGRAS DE DESCONTO
+# ------------------------------------------------------------
+discounts:
+  # Desconto máximo que a IA pode conceder autonomamente (sem aprovação)
+  max_autonomous_discount_percent: 15
+
+  # Desconto máximo absoluto (mesmo com aprovação)
+  max_absolute_discount_percent: 25
+
+  # Acima deste % de desconto, escalar para humano
+  escalation_threshold_percent: 20
+
+  # Descontos por volume (quantidade de itens)
+  volume_tiers:
+    - min_qty: 1
+      max_qty: 99
+      discount_percent: 0
+    - min_qty: 100
+      max_qty: 499
+      discount_percent: 5
+    - min_qty: 500
+      max_qty: 999
+      discount_percent: 10
+    - min_qty: 1000
+      max_qty: 4999
+      discount_percent: 15
+    - min_qty: 5000
+      max_qty: null
+      discount_percent: 20
+
+  # Descontos adicionais por valor total do pedido
+  order_value_tiers:
+    - min_value: 0
+      max_value: 4999.99
+      extra_discount_percent: 0
+    - min_value: 5000
+      max_value: 9999.99
+      extra_discount_percent: 2
+    - min_value: 10000
+      max_value: 19999.99
+      extra_discount_percent: 3
+    - min_value: 20000
+      max_value: null
+      extra_discount_percent: 5
+
+  # Regras por categoria de produto
+  category_rules:
+    "Fixação":
+      max_discount_percent: 20
+      min_margin_percent: 30
+    "Correntes":
+      max_discount_percent: 15
+      min_margin_percent: 35
+    "Rolamentos":
+      max_discount_percent: 12
+      min_margin_percent: 40
+    "Correias":
+      max_discount_percent: 10
+      min_margin_percent: 45
+    "Lubrificantes":
+      max_discount_percent: 18
+      min_margin_percent: 25
+    "Polias":
+      max_discount_percent: 15
+      min_margin_percent: 35
+    "Mancais":
+      max_discount_percent: 10
+      min_margin_percent: 40
+
+# ------------------------------------------------------------
+# REGRAS DE NEGOCIAÇÃO
+# ------------------------------------------------------------
+negotiation:
+  # Número máximo de rodadas de contra-proposta antes de escalar
+  max_counter_offer_rounds: 3
+
+  # Concessão máxima por rodada de contra-proposta (% adicional)
+  max_concession_per_round_percent: 3
+
+  # Estratégia de contra-proposta
+  # "split_difference" = divide a diferença
+  # "anchor_high"      = ancora no preço original
+  # "gradual"          = cede gradualmente
+  counter_offer_strategy: "gradual"
+
+  # Condições de pagamento disponíveis por faixa de valor
+  payment_terms:
+    - max_value: 1000
+      options: ["à vista", "7 dias"]
+    - max_value: 5000
+      options: ["à vista", "7 dias", "15 dias"]
+    - max_value: 10000
+      options: ["à vista", "15 dias", "30 dias"]
+    - max_value: 50000
+      options: ["à vista", "15/30 dias", "30/60 dias"]
+    - max_value: null
+      options: ["à vista", "30/60/90 dias", "60/90/120 dias"]
+
+  # Validade padrão da proposta (dias)
+  proposal_validity_days: 7
+
+  # Prazo adicional de entrega para estoque crítico (dias)
+  critical_stock_extra_lead_days: 5
+
+  # Mensagens de fechamento por estilo
+  closing_messages:
+    agressivo: "Posso fechar agora com essas condições. O que acha?"
+    neutro: "Essa é nossa melhor oferta dentro das condições atuais. Podemos prosseguir?"
+    conservador: "Essa proposta reflete o melhor custo-benefício disponível. Gostaria de confirmar?"
+
+# ------------------------------------------------------------
+# REGRAS DE ESCALAÇÃO
+# ------------------------------------------------------------
+escalation:
+  # Situações que disparam escalação para humano
+  triggers:
+    - condition: "discount_above_threshold"
+      message: "Desconto solicitado acima do limite. Encaminhando para aprovação."
+    - condition: "order_value_above"
+      threshold: 50000
+      message: "Pedido de alto valor. Um consultor entrará em contato."
+    - condition: "counter_offers_exceeded"
+      message: "Limite de negociações atingido. Conectando com nossa equipe."
+    - condition: "critical_stock_requested"
+      message: "Item com estoque crítico. Confirmação manual necessária."
+
+  # Contato de escalação
+  contact:
+    name: "Equipe Comercial"
+    email: "comercial@empresa.com"
+    whatsapp: "+55 11 99999-9999"
+    response_time_hours: 2
+
+# ------------------------------------------------------------
+# REGRAS DE FRETE E ENTREGA
+# ------------------------------------------------------------
+logistics:
+  # Frete grátis acima deste valor
+  free_shipping_above: 5000
+
+  # Taxa de frete padrão (% sobre o valor do pedido)
+  shipping_rate_percent: 2.5
+
+  # Prazo adicional para regiões remotas (dias)
+  remote_region_extra_days: 3
+
+  # Prazo mínimo de entrega (dias)
+  min_lead_time_days: 1
+
+# ------------------------------------------------------------
+# ALERTAS AUTOMÁTICOS
+# ------------------------------------------------------------
+alerts:
+  # Enviar alerta quando estoque atingir nível crítico
+  notify_on_critical: true
+
+  # Enviar alerta quando estoque atingir nível baixo
+  notify_on_low: true
+
+  # Produtos que sempre devem ter alerta prioritário
+  priority_skus:
+    - "SKU003"   # Rolamento 6203
+    - "SKU004"   # Correia Transportadora
+    - "SKU007"   # Mancal de Ferro Fundido
+
+  # Mensagem padrão de alerta interno
+  internal_alert_template: |
+    [ALERTA DE ESTOQUE] {sku} - {name}
+    Nível: {level} ({stock} {unit} restantes)
+    Ação recomendada: {action}

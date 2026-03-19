@@ -1,0 +1,114 @@
+{
+  "products": [
+    {
+      "id": "SKU001",
+      "name": "Parafuso M8x50",
+      "category": "Fixação",
+      "price": 0.85,
+      "stock": 5000,
+      "unit": "unidade",
+      "supplier": "Fornecedor A",
+      "lead_time_days": 3,
+      "min_order": 100
+    },
+    {
+      "id": "SKU002",
+      "name": "Corrente de Aço 10mm",
+      "category": "Correntes",
+      "price": 12.50,
+      "stock": 250,
+      "unit": "metro",
+      "supplier": "Fornecedor B",
+      "lead_time_days": 5,
+      "min_order": 10
+    },
+    {
+      "id": "SKU003",
+      "name": "Rolamento 6203",
+      "category": "Rolamentos",
+      "price": 45.00,
+      "stock": 120,
+      "unit": "unidade",
+      "supplier": "Fornecedor C",
+      "lead_time_days": 7,
+      "min_order": 5
+    },
+    {
+      "id": "SKU004",
+      "name": "Correia Transportadora 500mm",
+      "category": "Correias",
+      "price": 89.90,
+      "stock": 45,
+      "unit": "unidade",
+      "supplier": "Fornecedor D",
+      "lead_time_days": 10,
+      "min_order": 1
+    },
+    {
+      "id": "SKU005",
+      "name": "Óleo Hidráulico ISO 46",
+      "category": "Lubrificantes",
+      "price": 28.75,
+      "stock": 800,
+      "unit": "litro",
+      "supplier": "Fornecedor E",
+      "lead_time_days": 2,
+      "min_order": 50
+    },
+    {
+      "id": "SKU006",
+      "name": "Polia de Alumínio 100mm",
+      "category": "Polias",
+      "price": 65.00,
+      "stock": 80,
+      "unit": "unidade",
+      "supplier": "Fornecedor A",
+      "lead_time_days": 4,
+      "min_order": 2
+    },
+    {
+      "id": "SKU007",
+      "name": "Mancal de Ferro Fundido",
+      "category": "Mancais",
+      "price": 150.00,
+      "stock": 30,
+      "unit": "unidade",
+      "supplier": "Fornecedor C",
+      "lead_time_days": 8,
+      "min_order": 1
+    },
+    {
+      "id": "SKU008",
+      "name": "Corrente de Transmissão #60",
+      "category": "Correntes",
+      "price": 35.50,
+      "stock": 200,
+      "unit": "metro",
+      "supplier": "Fornecedor B",
+      "lead_time_days": 6,
+      "min_order": 5
+    }
+  ],
+  "discount_tiers": [
+    {
+      "min_quantity": 100,
+      "max_quantity": 499,
+      "discount_percent": 5
+    },
+    {
+      "min_quantity": 500,
+      "max_quantity": 999,
+      "discount_percent": 10
+    },
+    {
+      "min_quantity": 1000,
+      "max_quantity": 4999,
+      "discount_percent": 15
+    },
+    {
+      "min_quantity": 5000,
+      "max_quantity": null,
+      "discount_percent": 20
+    }
+  ]
+}
