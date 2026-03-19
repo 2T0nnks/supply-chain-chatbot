@@ -1,12 +1,34 @@
+# =============================================================================
+# Supply Chain Chatbot — Docker Compose
+# =============================================================================
+#
+# PORTAS UTILIZADAS:
+#   8000  → API do Chatbot (FastAPI) — precisa ser exposta para o Telegram
+#   11434 → Ollama (IA local)        — uso interno entre containers
+#
+# ANTES DE SUBIR:
+#   1. Copie o arquivo de exemplo: cp .env.example .env
+#   2. Preencha o TELEGRAM_TOKEN no arquivo .env
+#   3. Execute: docker-compose up -d
+#
+# PARA EXPOR A PORTA 8000 NO LOCALHOST:
+#   Use ngrok: ngrok http 8000
+#   Depois configure o webhook do Telegram com a URL gerada.
+# =============================================================================
+
 services:
 
+  # ---------------------------------------------------------------------------
+  # Ollama — Motor de IA local (qwen2.5:0.5b)
+  # Porta 11434 exposta apenas para acesso local (ex: testes via curl)
+  # ---------------------------------------------------------------------------
   ollama:
     image: ollama/ollama:latest
     container_name: supply-ollama
     volumes:
-      - ollama_data:/root/.ollama
+      - ollama_data:/root/.ollama   # Modelo fica salvo entre reinicializações
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"    # Acessível apenas no localhost (seguro)
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
@@ -15,6 +37,10 @@ services:
       retries: 5
       start_period: 60s
 
+  # ---------------------------------------------------------------------------
+  # Ollama Setup — Baixa o modelo na primeira execução e encerra
+  # Só roda uma vez; nas próximas subidas o modelo já está no volume
+  # ---------------------------------------------------------------------------
   ollama-setup:
     image: ollama/ollama:latest
     container_name: supply-ollama-setup
@@ -22,16 +48,24 @@ services:
       ollama:
         condition: service_healthy
     entrypoint: >
-      sh -c "ollama pull qwen2.5:0.5b && echo 'Modelo baixado com sucesso'"
+      sh -c "
+        echo 'Verificando modelo qwen2.5:0.5b...' &&
+        ollama pull qwen2.5:0.5b &&
+        echo 'Modelo pronto!'
+      "
     environment:
       - OLLAMA_HOST=http://ollama:11434
     restart: "no"
 
+  # ---------------------------------------------------------------------------
+  # Chatbot — API FastAPI
+  # Porta 8000 exposta para o host — use ngrok para torná-la pública
+  # ---------------------------------------------------------------------------
   chatbot:
     build: .
     container_name: supply-chatbot
     ports:
-      - "8000:8000"
+      - "8000:8000"                 # http://localhost:8000
     environment:
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - OLLAMA_HOST=http://ollama:11434
@@ -47,4 +81,4 @@ services:
       start_period: 15s
 
 volumes:
-  ollama_data:
+  ollama_data:    # Volume persistente — o modelo não é baixado novamente após o primeiro uso
